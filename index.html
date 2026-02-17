@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily English | Meu Treino Diário</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Status Bar (Pontos e Streak) */
+        .status-bar {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            background: var(--card);
+            padding: 15px 25px;
+            border-radius: 20px;
+            border: 1px solid #334155;
+        }
+
+        .stat-item { text-align: center; }
+        .stat-value { display: block; font-weight: 800; color: var(--primary); font-size: 1.2rem; }
+        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+
+        /* Card Principal */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card);
+            padding: 30px;
+            border-radius: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
+        }
+
+        .level-tabs {
+            display: flex;
+            background: #0f172a;
+            padding: 5px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+        .tab.active { background: var(--primary); color: white; }
+
+        .phrase-card {
+            background: #334155;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            border-left: 6px solid var(--primary);
+        }
+
+        textarea {
+            width: 100%;
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 15px;
+            padding: 15px;
+            color: white;
+            font-size: 1rem;
+            resize: none;
+            height: 120px;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        textarea:focus { border-color: var(--primary); }
+
+        .actions { display: flex; gap: 10px; }
+
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-main { background: var(--primary); color: white; }
+        .btn-main:hover { opacity: 0.9; transform: translateY(-2px); }
+
+        #feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 12px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } }
+
+        .success { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid var(--success); }
+        .wrong { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid var(--danger); }
+
+        .correct-text { display: block; margin-top: 8px; font-weight: 400; color: white; opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <div class="status-bar">
+        <div class="stat-item">
+            <span class="stat-label">Ofensiva</span>
+            <span class="stat-value" id="streak-display">🔥 0 dias</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Acertos Total</span>
+            <span class="stat-value" id="points-display">🏆 0</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="level-tabs">
+            <button class="tab active" onclick="changeLevel('basic')">Básico</button>
+            <button class="tab" onclick="changeLevel('intermediate')">Médio</button>
+            <button class="tab" onclick="changeLevel('hard')">Avançado</button>
+        </div>
+
+        <div class="phrase-card" id="pt-phrase">Carregando...</div>
+
+        <textarea id="user-input" placeholder="Traduza para o inglês..."></textarea>
+
+        <div class="actions">
+            <button class="btn btn-main" onclick="checkAnswer()">Verificar</button>
+            <button class="btn" style="background: #334155; color: white;" onclick="nextQuestion()">Pular</button>
+        </div>
+
+        <div id="feedback"></div>
+    </div>
+
+<script>
+    // Banco de Dados de Frases
+    const phrases = {
+    // Substitua a lista 'basic' do seu código por esta:
+basic: [
+    // Saudações e Apresentações
+    { pt: "Olá, como vai você?", en: "Hello, how are you?" },
+    { pt: "Meu nome é João.", en: "My name is João" },
+    { pt: "Prazer em conhecê-lo.", en: "Nice to meet you" },
+    { pt: "De onde você é?", en: "Where are you from?" },
+    { pt: "Eu sou do Brasil.", en: "I am from Brazil" },
+    { pt: "Quantos anos você tem?", en: "How old are you?" },
+    { pt: "Eu tenho vinte anos.", en: "I am twenty years old" },
+    { pt: "Qual é o seu telefone?", en: "What is your phone number?" },
+    { pt: "Você fala inglês?", en: "Do you speak English?" },
+    { pt: "Um pouco.", en: "A little bit" },
+    { pt: "Como se diz isso em inglês?", en: "How do you say this in English?" },
+    { pt: "Eu não entendo.", en: "I don't understand" },
+    { pt: "Você pode repetir?", en: "Can you repeat?" },
+    { pt: "Obrigado por tudo.", en: "Thanks for everything" },
+    { pt: "De nada.", en: "You are welcome" },
+
+    // Necessidades e Desejos
+    { pt: "Eu estou com fome.", en: "I am hungry" },
+    { pt: "Eu estou com sede.", en: "I am thirsty" },
+    { pt: "Eu quero água.", en: "I want water" },
+    { pt: "Onde fica o banheiro?", en: "Where is the bathroom?" },
+    { pt: "Eu preciso de um médico.", en: "I need a doctor" },
+    { pt: "Eu quero comer algo.", en: "I want to eat something" },
+    { pt: "Você quer café?", en: "Do you want coffee?" },
+    { pt: "Eu gosto de chá.", en: "I like tea" },
+    { pt: "Eu não gosto de leite.", en: "I don't like milk" },
+    { pt: "A conta, por favor.", en: "The check, please" },
+    { pt: "Quanto custa isso?", en: "How much is this?" },
+    { pt: "Está muito caro.", en: "It is too expensive" },
+    { pt: "Eu vou comprar isso.", en: "I will buy this" },
+
+    // Rotina Diária
+    { pt: "Eu acordo cedo.", en: "I wake up early" },
+    { pt: "Eu tomo banho de manhã.", en: "I take a shower in the morning" },
+    { pt: "Eu tomo café da manhã às sete.", en: "I have breakfast at seven" },
+    { pt: "Eu vou para o trabalho de ônibus.", en: "I go to work by bus" },
+    { pt: "Eu trabalho em um escritório.", en: "I work in an office" },
+    { pt: "Eu estudo inglês todos os dias.", en: "I study English every day" },
+    { pt: "Eu almoço ao meio-dia.", en: "I eat lunch at noon" },
+    { pt: "Eu volto para casa às seis.", en: "I go back home at six" },
+    { pt: "Eu janto com minha família.", en: "I have dinner with my family" },
+    { pt: "Eu assisto TV à noite.", en: "I watch TV at night" },
+    { pt: "Eu vou dormir às dez.", en: "I go to sleep at ten" },
+    { pt: "Eu estou cansado.", en: "I am tired" },
+    { pt: "Eu preciso dormir.", en: "I need to sleep" },
+
+    // Localização e Direções
+    { pt: "Onde é o hotel?", en: "Where is the hotel?" },
+    { pt: "Vire à esquerda.", en: "Turn left" },
+    { pt: "Vire à direita.", en: "Turn right" },
+    { pt: "Siga em frente.", en: "Go straight" },
+    { pt: "Está perto daqui?", en: "Is it near here?" },
+    { pt: "Está longe.", en: "It is far" },
+    { pt: "Eu estou perdido.", en: "I am lost" },
+    { pt: "Onde fica a farmácia?", en: "Where is the pharmacy?" },
+    { pt: "O supermercado está aberto.", en: "The supermarket is open" },
+    { pt: "A loja está fechada.", en: "The store is closed" },
+
+    // Sentimentos e Estados
+    { pt: "Eu estou feliz.", en: "I am happy" },
+    { pt: "Eu estou triste.", en: "I am sad" },
+    { pt: "Você está ocupado?", en: "Are you busy?" },
+    { pt: "Eu estou livre agora.", en: "I am free now" },
+    { pt: "Está calor hoje.", en: "It is hot today" },
+    { pt: "Está frio lá fora.", en: "It is cold outside" },
+    { pt: "Eu estou com frio.", en: "I am cold" },
+    { pt: "Eu estou com calor.", en: "I am hot" },
+    { pt: "Isso é bom.", en: "This is good" },
+    { pt: "Isso é ruim.", en: "This is bad" },
+    { pt: "Eu não tenho certeza.", en: "I am not sure" },
+
+    // Família e Amigos
+    { pt: "Quem é ele?", en: "Who is he?" },
+    { pt: "Ela é minha irmã.", en: "She is my sister" },
+    { pt: "Ele é meu irmão.", en: "He is my brother" },
+    { pt: "Meus pais estão em casa.", en: "My parents are at home" },
+    { pt: "Eu tenho um filho.", en: "I have a son" },
+    { pt: "Eu tenho uma filha.", en: "I have a daughter" },
+    { pt: "Você tem irmãos?", en: "Do you have siblings?" },
+    { pt: "Eu amo minha família.", en: "I love my family" },
+
+    // Tempo e Datas
+    { pt: "Hoje é segunda-feira.", en: "Today is Monday" },
+    { pt: "Amanhã é feriado.", en: "Tomorrow is a holiday" },
+    { pt: "Que dia é hoje?", en: "What day is today?" },
+    { pt: "Estamos no verão.", en: "We are in summer" },
+    { pt: "Meu aniversário é em maio.", en: "My birthday is in May" },
+    { pt: "Vejo você amanhã.", en: "See you tomorrow" },
+    { pt: "Até logo.", en: "See you later" },
+
+    // Cores e Objetos
+    { pt: "O carro é azul.", en: "The car is blue" },
+    { pt: "A casa é grande.", en: "The house is big" },
+    { pt: "O cachorro é pequeno.", en: "The dog is small" },
+    // Compras e Dinheiro
+    { pt: "Eu preciso de um sapato novo.", en: "I need new shoes" },
+    { pt: "Onde fica o shopping?", en: "Where is the mall?" },
+    { pt: "Você aceita cartão de crédito?", en: "Do you accept credit cards?" },
+    { pt: "Eu só tenho dinheiro vivo.", en: "I only have cash" },
+    { pt: "Você pode me dar um desconto?", en: "Can you give me a discount?" },
+    { pt: "Eu estou apenas olhando.", en: "I am just looking" },
+
+    // Clima e Natureza
+    { pt: "O céu está muito bonito.", en: "The sky is very beautiful" },
+    { pt: "Vai chover amanhã.", en: "It is going to rain tomorrow" },
+    { pt: "Eu amo a praia.", en: "I love the beach" },
+    { pt: "As flores são vermelhas.", en: "The flowers are red" },
+    { pt: "Está ventando muito.", en: "It is very windy" },
+
+    // Comida e Restaurante
+    { pt: "Eu gostaria de uma mesa para dois.", en: "I would like a table for two" },
+    { pt: "Eu sou vegetariano.", en: "I am a vegetarian" },
+    { pt: "A comida está deliciosa.", en: "The food is delicious" },
+    { pt: "Eu quero uma cerveja gelada.", en: "I want a cold beer" },
+    { pt: "Onde fica a cozinha?", en: "Where is the kitchen?" },
+    { pt: "Eu não como carne de porco.", en: "I don't eat pork" },
+
+    // Tecnologia e Trabalho
+    { pt: "Meu computador quebrou.", en: "My computer broke" },
+    { pt: "Qual é a senha do Wi-Fi?", en: "What is the Wi-Fi password?" },
+    { pt: "Eu preciso carregar meu celular.", en: "I need to charge my phone" },
+    { pt: "Eu recebi seu e-mail.", en: "I received your email" },
+    { pt: "A internet está lenta.", en: "The internet is slow" },
+
+    // Viagem e Transporte
+    { pt: "Onde fica a estação de trem?", en: "Where is the train station?" },
+    { pt: "Eu preciso de um táxi.", en: "I need a taxi" },
+    { pt: "A que horas sai o voo?", en: "What time does the flight leave?" },
+    { pt: "Aqui está meu passaporte.", en: "Here is my passport" },
+    { pt: "Eu quero uma passagem de ida e volta.", en: "I want a round-trip ticket" },
+
+    // Descrições de Pessoas
+    { pt: "Ela é muito inteligente.", en: "She is very smart" },
+    { pt: "Ele é um homem alto.", en: "He is a tall man" },
+    { pt: "Minha mãe é professora.", en: "My mother is a teacher" },
+    { pt: "Meu pai é médico.", en: "My father is a doctor" },
+    { pt: "Eles são meus amigos.", en: "They are my friends" },
+
+    // Escola e Estudo
+    { pt: "Eu tenho uma pergunta.", en: "I have a question" },
+    { pt: "Eu não sei a resposta.", en: "I don't know the answer" },
+    { pt: "Abra seu livro na página dez.", en: "Open your book to page ten" },
+    { pt: "Eu preciso estudar para a prova.", en: "I need to study for the test" },
+    { pt: "Você tem uma caneta?", en: "Do you have a pen?" },
+
+    // Frases Curtas de Sobrevivência
+    { pt: "Espere por mim.", en: "Wait for me" },
+    { pt: "Venha aqui, por favor.", en: "Come here, please" },
+    { pt: "Fale mais devagar.", en: "Speak slower" },
+    { pt: "Escreva aqui.", en: "Write it here" },
+    { pt: "Tudo bem para você?", en: "Is it okay for you?" },
+    { pt: "Eu não me sinto bem.", en: "I don't feel well" },
+    { pt: "Me ajude com isso.", en: "Help me with this" },
+    { pt: "O que você quer dizer?", en: "What do you mean?" },
+    { pt: "Eu estou pronto.", en: "I am ready" },
+    { pt: "Divirta-se!", en: "Have fun!" }
+
+],
+        
+        intermediate: [
+            { pt: "Eu nunca estive na Europa.", en: "I have never been to Europe" },
+            { pt: "Se eu fosse você, eu estudaria mais.", en: "If I were you, I would study more" },
+            { pt: "Eu estou acostumado a acordar cedo.", en: "I am used to waking up early" },
+            { pt: "Você se importa de abrir a janela?", en: "Do you mind opening the window" },
+            { pt: "Eles estão jogando futebol há duas horas.", en: "They have been playing soccer for two hours" },
+            // Adicione estas ao seu bloco 'intermediate'
+    // Trabalho e Reuniões
+    { pt: "Estou ansioso pela nossa reunião.", en: "I am looking forward to our meeting" },
+    { pt: "Precisamos resolver esse problema logo.", en: "We need to solve this problem soon" },
+    { pt: "Eu vou entrar em contato com você.", en: "I will get in touch with you" },
+    { pt: "Você pode me enviar os detalhes?", en: "Can you send me the details?" },
+    { pt: "A reunião foi adiada para amanhã.", en: "The meeting was postponed until tomorrow" },
+    { pt: "Eu cuido disso para você.", en: "I will take care of that for you" },
+    { pt: "Estou sobrecarregado de trabalho.", en: "I am overwhelmed with work" },
+    { pt: "Precisamos bater a meta este mês.", en: "We need to hit the target this month" },
+    { pt: "Vou dar o meu melhor.", en: "I will do my best" },
+    { pt: "Quais são as suas expectativas?", en: "What are your expectations?" },
+
+    // Viagens e Direções Avançadas
+    { pt: "Quanto tempo leva para chegar lá?", en: "How long does it take to get there?" },
+    { pt: "Você poderia me dar uma carona?", en: "Could you give me a ride?" },
+    { pt: "Eu prefiro viajar de avião.", en: "I prefer traveling by plane" },
+    { pt: "O trânsito está terrível hoje.", en: "The traffic is terrible today" },
+    { pt: "Onde eu faço o check-in?", en: "Where do I check in?" },
+    { pt: "Meu voo está atrasado.", en: "My flight is delayed" },
+    { pt: "Eu gostaria de reservar um quarto.", en: "I would like to book a room" },
+    { pt: "Você conhece algum bom restaurante?", en: "Do you know any good restaurants?" },
+    { pt: "Ficamos sem combustível.", en: "We ran out of fuel" },
+    { pt: "O hotel fica a uma curta distância.", en: "The hotel is within walking distance" },
+
+    // Phrasal Verbs Essenciais
+    { pt: "Eu não quero desistir agora.", en: "I don't want to give up now" },
+    { pt: "Continue tentando.", en: "Keep on trying" },
+    { pt: "Ele acabou chegando tarde.", en: "He ended up arriving late" },
+    { pt: "Eu preciso dar uma olhada nisso.", en: "I need to look into this" },
+    { pt: "Nós nos damos muito bem.", en: "We get along very well" },
+    { pt: "O avião decola às oito.", en: "The plane takes off at eight" },
+    { pt: "Eu vou passar na sua casa.", en: "I will drop by your house" },
+    { pt: "Não me decepcione.", en: "Don't let me down" },
+    { pt: "Eu preciso cancelar o compromisso.", en: "I need to call off the appointment" },
+    { pt: "Ele inventou uma desculpa.", en: "He made up an excuse" },
+
+    // Hipóteses e Condições (If clauses)
+    { pt: "Se eu ganhar, eu te aviso.", en: "If I win, I will let you know" },
+    { pt: "Eu compraria se fosse mais barato.", en: "I would buy it if it were cheaper" },
+    { pt: "Se você tivesse vindo, teria sido legal.", en: "If you had come, it would have been nice" },
+    { pt: "Eu vou, a menos que chova.", en: "I will go unless it rains" },
+    { pt: "Caso você precise, estou aqui.", en: "In case you need it, I am here" },
+    { pt: "O que aconteceria se você fosse?", en: "What would happen if you went?" },
+    { pt: "Eu faria o mesmo no seu lugar.", en: "I would do the same in your shoes" },
+
+    // Sentimentos e Conversa Social
+    { pt: "Eu estou acostumado com isso.", en: "I am used to it" },
+    { pt: "Isso me deixa irritado.", en: "That makes me annoyed" },
+    { pt: "Não faz diferença para mim.", en: "It makes no difference to me" },
+    { pt: "Eu não tive a intenção de dizer isso.", en: "I didn't mean to say that" },
+    { pt: "O que você quis dizer com isso?", en: "What did you mean by that?" },
+    { pt: "Fique à vontade.", en: "Make yourself at home" },
+    { pt: "Sinto muito por ouvir isso.", en: "I am sorry to hear that" },
+    { pt: "Isso soa ótimo.", en: "That sounds great" },
+    { pt: "Você tem razão.", en: "You have a point" },
+    { pt: "Eu não poderia concordar mais.", en: "I couldn't agree more" },
+
+    // Passado e Experiências
+    { pt: "Eu costumava jogar videogame.", en: "I used to play video games" },
+    { pt: "O que você estava fazendo ontem?", en: "What were you doing yesterday?" },
+    { pt: "Eu já tinha visto esse filme.", en: "I had already seen this movie" },
+    { pt: "Eu nunca tinha pensado nisso.", en: "I had never thought about it" },
+    { pt: "Fazia muito tempo que não te via.", en: "It had been a long time since I saw you" },
+
+    // Diversos para completar 100
+    { pt: "Vale a pena tentar.", en: "It is worth trying" },
+    { pt: "Eu estou com pouco dinheiro.", en: "I am short on money" },
+    { pt: "Isso é perda de tempo.", en: "That is a waste of time" },
+    { pt: "Eu perdi o prazo.", en: "I missed the deadline" },
+    { pt: "Você está brincando?", en: "Are you kidding?" },
+    { pt: "A propósito, qual seu nome?", en: "By the way, what is your name?" },
+    { pt: "De qualquer forma, obrigado.", en: "Anyway, thanks" },
+    { pt: "Eu não ligo para o que dizem.", en: "I don't care what they say" },
+    { pt: "Depende do tempo.", en: "It depends on the weather" },
+    { pt: "Tenho certeza absoluta.", en: "I am absolutely sure" },
+    { pt: "Não tire conclusões precipitadas.", en: "Don't jump to conclusions" },
+    { pt: "É melhor prevenir do que remediar.", en: "Better safe than sorry" },
+    { pt: "Mantenha o bom trabalho.", en: "Keep up the good work" },
+    { pt: "Não me leve a mal.", en: "Don't get me wrong" },
+    { pt: "Isso é um bom sinal.", en: "That is a good sign" },
+    { pt: "Eu mudei de ideia.", en: "I changed my mind" },
+    { pt: "Não é grande coisa.", en: "It is not a big deal" },
+    { pt: "Eu te aviso mais tarde.", en: "I will let you know later" },
+    { pt: "Não há necessidade de se apressar.", en: "There is no need to hurry" },
+    { pt: "Você está no caminho certo.", en: "You are on the right track" },
+    { pt: "Eu perdi o ônibus.", en: "I missed the bus" },
+    { pt: "Dê os meus cumprimentos a ela.", en: "Give her my regards" },
+    { pt: "Estou morrendo de vontade de comer pizza.", en: "I am craving pizza" },
+    { pt: "Vamos direto ao ponto.", en: "Let's get straight to the point" },
+    { pt: "Eu não posso me dar ao luxo disso.", en: "I can't afford it" },
+    { pt: "Ficou sem bateria.", en: "It ran out of battery" },
+    { pt: "Estou fazendo o meu melhor.", en: "I am doing my best" },
+    { pt: "O tempo está acabando.", en: "Time is running out" },
+    { pt: "Fique de olho nisso.", en: "Keep an eye on it" },
+    { pt: "Eu não tenho escolha.", en: "I have no choice" },
+    { pt: "É apenas uma questão de tempo.", en: "It is just a matter of time" },
+    { pt: "Não desista agora.", en: "Don't give up now" },
+    { pt: "Estou quase terminando.", en: "I am almost done" },
+    { pt: "Você se importa?", en: "Do you mind?" },
+    { pt: "Não importa.", en: "It doesn't matter" },
+    { pt: "Eu não consigo me lembrar.", en: "I can't remember" },
+    { pt: "Como você sabe disso?", en: "How do you know that?" },
+    { pt: "O que há de errado?", en: "What is wrong?" },
+    { pt: "Isso é um segredo.", en: "That is a secret" },
+    { pt: "Você está pronto para ir?", en: "Are you ready to go?" },
+    { pt: "Espero que sim.", en: "I hope so" },
+    { pt: "Infelizmente não.", en: "Unfortunately not" },
+    { pt: "Que coincidência!", en: "What a coincidence!" },
+    { pt: "Eu te ligo de volta.", en: "I will call you back" },
+    { pt: "Tome cuidado.", en: "Take care" },
+    { pt: "Estou a caminho.", en: "I am on my way" },
+    { pt: "O que você está procurando?", en: "What are you looking for?" },
+    { pt: "Eu tenho muito o que fazer.", en: "I have a lot to do" },
+    { pt: "Isso é muito gentil da sua parte.", en: "That is very kind of you" }
+        ],
+
+        hard: [
+            { pt: "Apesar da chuva, decidimos sair.", en: "Despite the rain, we decided to go out" },
+            { pt: "Não só ele é inteligente, mas também muito gentil.", en: "Not only is he smart, but also very kind" },
+            { pt: "Eu preferiria que você não tivesse feito isso.", en: "I would rather you hadn't done that" },
+            { pt: "Dificilmente alguém notou a diferença.", en: "Hardly anyone noticed the difference" },
+            // ESTRUTURAS AVANÇADAS E LITERÁRIAS
+{ pt: "Dificilmente eu teria acreditado se não tivesse visto.", en: "Hardly would I have believed it had I not seen it" },
+{ pt: "Sob nenhuma circunstância você deve abrir esta porta.", en: "Under no circumstances must you open this door" },
+{ pt: "Mal sabia ele que sua vida estava prestes a mudar.", en: "Little did he know that his life was about to change" },
+{ pt: "Não apenas ela é talentosa, mas também extremamente dedicada.", en: "Not only is she talented, but also extremely dedicated" },
+{ pt: "Tivesse eu mais tempo, eu teria terminado o projeto.", en: "Had I more time, I would have finished the project" },
+
+// EXPRESSÕES IDIOMÁTICAS E PHRASAL VERBS COMPLEXOS
+{ pt: "Precisamos encarar os fatos, por mais difíceis que sejam.", en: "We need to face the facts, however difficult they may be" },
+{ pt: "Ele acabou aceitando a oferta depois de muita hesitação.", en: "He ended up accepting the offer after much hesitation" },
+{ pt: "Não vale a pena se preocupar com coisas pequenas.", en: "It is not worth sweating the small stuff" },
+{ pt: "Isso é apenas a ponta do iceberg em relação ao problema.", en: "That is just the tip of the iceberg regarding the problem" },
+{ pt: "Ele sempre faz tempestade em copo d'água.", en: "He always makes a mountain out of a molehill" },
+
+// CONDIÇÕES E HIPÓTESES REFINADAS
+{ pt: "A menos que haja um imprevisto, chegaremos no horário.", en: "Unless there is an unforeseen event, we will arrive on time" },
+{ pt: "Eu preferiria que você não tivesse mencionado isso na reunião.", en: "I would rather you hadn't mentioned that in the meeting" },
+{ pt: "É fundamental que tomemos uma decisão imediata.", en: "It is essential that we make an immediate decision" },
+{ pt: "Caso surja qualquer dúvida, não hesite em me contatar.", en: "Should any doubt arise, do not hesitate to contact me" },
+{ pt: "Independentemente do resultado, aprendemos muito.", en: "Regardless of the outcome, we learned a lot" },
+
+// FORMALIDADE E ARGUMENTAÇÃO
+{ pt: "A despeito das evidências, ele negou o envolvimento.", en: "Despite the evidence, he denied involvement" },
+{ pt: "Considerando as circunstâncias, fizemos o melhor que pudemos.", en: "Given the circumstances, we did the best we could" },
+{ pt: "Isso levanta uma questão importante sobre a nossa estratégia.", en: "This raises an important question about our strategy" },
+{ pt: "Ele é propenso a exagerar as coisas às vezes.", en: "He is prone to exaggerating things sometimes" },
+{ pt: "O projeto foi cancelado devido à falta de verba.", en: "The project was called off due to a lack of funds" },
+
+// CONTINUAÇÃO PARA COMPLETAR O VOLUME
+{ pt: "Eu mal tive tempo de processar a notícia.", en: "I hardly had time to process the news" },
+{ pt: "Tudo indica que haverá mudanças significativas.", en: "Everything points to significant changes ahead" },
+{ pt: "Ele se recusa a admitir que estava errado.", en: "He refuses to admit that he was wrong" },
+{ pt: "Eu não poderia ter feito isso sem o seu apoio constante.", en: "I couldn't have done it without your constant support" },
+{ pt: "É provável que o mercado mude nos próximos meses.", en: "The market is likely to change in the coming months" },
+{ pt: "Ele superou todas as expectativas com seu desempenho.", en: "He exceeded all expectations with his performance" },
+{ pt: "Dada a gravidade da situação, precisamos agir rápido.", en: "Given the severity of the situation, we need to act fast" },
+{ pt: "Não vamos tirar conclusões precipitadas sem os fatos.", en: "Let's not jump to conclusions without the facts" },
+{ pt: "Isso não faz o menor sentido para mim.", en: "That doesn't make the slightest sense to me" },
+{ pt: "Eu assumo total responsabilidade pelo que aconteceu.", en: "I take full responsibility for what happened" },
+{ pt: "Ele foi pego de surpresa pela decisão da empresa.", en: "He was caught off guard by the company's decision" },
+{ pt: "A questão em pauta é de extrema importância.", en: "The matter at hand is of utmost importance" },
+{ pt: "Ele é conhecido por sua atenção aos detalhes.", en: "He is known for his attention to detail" },
+{ pt: "Não vale a pena chorar pelo leite derramado.", en: "It's no use crying over spilled milk" },
+{ pt: "Isso é um divisor de águas para a nossa carreira.", en: "This is a game-changer for our career" },
+{ pt: "Ele se destaca como um dos melhores na área.", en: "He stands out as one of the best in the field" },
+{ pt: "Eu gostaria que tivéssemos sido informados antes.", en: "I wish we had been informed earlier" },
+{ pt: "Parece que estamos em um beco sem saída.", en: "It seems we are at a dead end" },
+{ pt: "Ele conseguiu dar a volta por cima após a crise.", en: "He managed to bounce back after the crisis" },
+{ pt: "A longo prazo, essa será a melhor escolha.", en: "In the long run, this will be the best choice" }
+        ]
+    };
+
+    let currentLevel = 'basic';
+    let currentPhrase = {};
+    let stats = JSON.parse(localStorage.getItem('english_stats')) || { points: 0, streak: 0, lastDate: null };
+
+    // Inicialização
+    function init() {
+        updateStatsDisplay();
+        checkStreak();
+        nextQuestion();
+    }
+
+    function updateStatsDisplay() {
+        document.getElementById('streak-display').innerText = `🔥 ${stats.streak} dias`;
+        document.getElementById('points-display').innerText = `🏆 ${stats.points}`;
+        localStorage.setItem('english_stats', JSON.stringify(stats));
+    }
+
+    function checkStreak() {
+        const today = new Date().toLocaleDateString();
+        if (stats.lastDate === today) return;
+
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        if (stats.lastDate === yesterday.toLocaleDateString()) {
+            // Continua ofensiva (isso será validado ao acertar a primeira do dia)
+        } else if (stats.lastDate !== null) {
+            // Perdeu ofensiva
+            stats.streak = 0;
+        }
+        updateStatsDisplay();
+    }
+
+    function changeLevel(level) {
+        currentLevel = level;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        const levelPhrases = phrases[currentLevel];
+        currentPhrase = levelPhrases[Math.floor(Math.random() * levelPhrases.length)];
+        document.getElementById('pt-phrase').innerText = currentPhrase.pt;
+        document.getElementById('user-input').value = '';
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('user-input').focus();
+    }
+
+    function checkAnswer() {
+        const input = document.getElementById('user-input').value.trim().toLowerCase().replace(/[.?!]/g, "");
+        const correct = currentPhrase.en.toLowerCase().replace(/[.?!]/g, "");
+        const feedback = document.getElementById('feedback');
+
+        feedback.style.display = 'block';
+
+        if (input === correct) {
+            feedback.className = 'success';
+            feedback.innerHTML = "<b>Incrível!</b> Resposta correta.";
+            
+            // Lógica de Pontos e Ofensiva
+            stats.points++;
+            const today = new Date().toLocaleDateString();
+            if (stats.lastDate !== today) {
+                stats.streak++;
+                stats.lastDate = today;
+            }
+            updateStatsDisplay();
+            setTimeout(nextQuestion, 2000);
+        } else {
+            feedback.className = 'wrong';
+            feedback.innerHTML = `<b>Quase lá!</b> Veja a forma correta: <span class="correct-text">${currentPhrase.en}</span>`;
+        }
+    }
+
+    // Atalho: Enter para verificar
+    document.getElementById('user-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            checkAnswer();
+        }
+    });
+
+    init();
+</script>
+</body>
+</html>
